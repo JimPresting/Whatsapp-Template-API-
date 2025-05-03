@@ -62,13 +62,13 @@ This script acts as a local server that handles the two-step resumable upload pr
 
 2.  **Upload Media File:**
     *   Open a **new** terminal window or use a tool like Postman.
-    *   Send a POST request to the local server's `/uploadMedia` endpoint, attaching your media file.
-    *   **IMPORTANT: Replace `/path/to/your/media.ext`** with the actual, full path to the file you want to upload (e.g., `/Users/yourname/Documents/report.pdf`, `C:\path\to\your\image.png`).
+    *   Send a `POST` request to the local server's `/uploadMedia` endpoint, attaching your media file as form data.
+    *   **IMPORTANT: Replace `/path/to/your/document.pdf`** with the actual, full path to the file you want to upload.
 
     **Example using `curl`:**
     ```bash
     # Replace the path with YOUR file's path
-    curl --location "http://localhost:2002/uploadMedia" --form "file=@\"/path/to/your/media.ext\""
+    curl --location "http://localhost:2002/uploadMedia" --form "file=@\"/path/to/your/document.pdf\""
     ```
 
     *   **Successful Response:** If the upload via the script is successful, you will receive a JSON response like this:
@@ -83,48 +83,50 @@ This script acts as a local server that handles the two-step resumable upload pr
     *   **IMPORTANT:** Copy the value of the `"h"` field. This is your **Media Asset Handle**. You need it for the next step.
 
 3.  **Create Message Template:**
-    *   Use the same **second** terminal window or your API tool.
-    *   Send a POST request to the local server's `/createTemplate` endpoint.
-    *   The request body must be JSON and contain your template definition.
-    *   **IMPORTANT: Replace `"PASTE_YOUR_FILE_HANDLE_HERE"`** in the `header_handle` array with the actual **Media Asset Handle** you copied in the previous step.
-    *   **IMPORTANT: Adapt the template `name`, `language`, `category`, `format`, `text`, and `example` values to match the template YOU want to create.**
+    *   Use your preferred API tool (like Postman, Insomnia) or an n8n HTTP Request node.
+    *   Send a `POST` request to the local server's endpoint: `http://localhost:2002/createTemplate`.
+    *   Set the request header `Content-Type` to `application/json`.
+    *   Set the request **Body** to the following **JSON structure**.
+    *   **IMPORTANT: Replace `"PASTE_YOUR_FILE_HANDLE_HERE"`** in the `header_handle` array with the actual **Media Asset Handle** you copied in step 2.
+    *   **IMPORTANT: Adapt the template `name`, `language`, `category`, `text`, and `example` values to match the template YOU want to create.**
 
-    **Example using `curl` (creating a generic template with an image header and one variable):**
-    ```bash
-    # REMEMBER to replace the handle and customize the template details below
-    curl --location "http://localhost:2002/createTemplate" \
-    --header "Content-Type: application/json" \
-    --data "{
-      \"name\": \"your_template_name_here\",
-      \"language\": \"en_US\",
-      \"category\": \"MARKETING\",
-      \"components\": [
+    ---
+    **JSON Request Body:**
+
+    Use this structure directly as your JSON payload in your API tool or n8n node.
+
+    ```json
+    {
+      "name": "your_document_template_name",
+      "language": "en_US",
+      "category": "UTILITY",
+      "components": [
         {
-          \"type\": \"HEADER\",
-          \"format\": \"IMAGE\",
-          \"example\": {
-            \"header_handle\": [
-              \"PASTE_YOUR_FILE_HANDLE_HERE\"
+          "type": "HEADER",
+          "format": "DOCUMENT",
+          "example": {
+            "header_handle": [
+              "PASTE_YOUR_FILE_HANDLE_HERE" // something like: '4:SkJQIEN....'
             ]
           }
         },
         {
-          \"type\": \"BODY\",
-          \"text\": \"Hello {{1}}, here is your update!\",
-          \"example\": {
-            \"body_text\": [
-              [\"Customer Name\"]
+          "type": "BODY",
+          "text": "Here is the document for {{1}}.",
+          "example": {
+            "body_text": [
+              ["Customer Name Example"]
             ]
           }
         },
         {
-          \"type\": \"FOOTER\",
-          \"text\": \"Optional Footer Text\"
+          "type": "FOOTER",
+          "text": "Your Company Text"
         }
       ]
-    }"
+    }
     ```
-    *(Note: The `\"` escapes are needed for some command lines like Windows cmd.exe. If using Postman or similar, use the raw JSON without escapes.)*
+    ---
 
     *   **Successful Response:** If the template creation is accepted by Meta (via the local script), you will receive a JSON response like this:
         ```json
@@ -133,7 +135,7 @@ This script acts as a local server that handles the two-step resumable upload pr
             "body": {
                 "id": "NEW_TEMPLATE_ID",
                 "status": "PENDING", // Or APPROVED, REJECTED
-                "category": "MARKETING" // The category you specified
+                "category": "UTILITY" // The category you specified
             }
         }
         ```
